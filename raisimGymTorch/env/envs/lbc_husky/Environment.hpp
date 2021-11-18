@@ -72,6 +72,7 @@ class ENVIRONMENT : public RaisimGymEnv {
     gc_init_.setZero(gcDim_);
     gv_.setZero(gvDim_);
     gv_init_.setZero(gvDim_);
+    lidarData.setZero(SCANSIZE);
     genForce_.setZero(gvDim_);
     torque4_.setZero(nJoints_);
 
@@ -100,6 +101,12 @@ class ENVIRONMENT : public RaisimGymEnv {
       for(int i = 0; i < SCANSIZE; i++)
         scans.push_back(server_->addVisualBox("box" + std::to_string(i), 0.1, 0.1, 0.1, 1, 0, 0));
     }
+
+    for(auto& rw: rewards_.getStdMap()) {
+      stepDataTag_.push_back(rw.first);
+    }
+
+    stepData_.resize(stepDataTag_.size());
   }
 
   void init() final { }
@@ -119,6 +126,19 @@ class ENVIRONMENT : public RaisimGymEnv {
       husky_->setState(gc_init_, gv_init_);
     }
     updateObservation();
+  }
+
+  const std::vector<std::string>& getStepDataTag() {
+    return stepDataTag_;
+  }
+
+  const Eigen::VectorXf& getStepData() {
+    int i = 0;
+    for(auto& rw: rewards_.getStdMap()){
+      stepData_[i] = rw.second;
+      i++;
+    }
+    return stepData_;
   }
 
   float step(const Eigen::Ref<EigenVec>& action) final {
@@ -148,7 +168,6 @@ class ENVIRONMENT : public RaisimGymEnv {
     husky_->getFramePosition("imu_joint", lidarPos);
     husky_->getFrameOrientation("imu_joint", lidarOri);
 
-    Eigen::VectorXd lidarData(SCANSIZE);
     Eigen::Vector3d direction;
     const double scanWidth = 2. * M_PI;
 
@@ -168,6 +187,14 @@ class ENVIRONMENT : public RaisimGymEnv {
           scans[j]->setPosition({0,0,100});
       }
     }
+
+    raisim::Vec<4> quat;
+    quat[0] = gc_[3]; quat[1] = gc_[4]; quat[2] = gc_[5]; quat[3] = gc_[6];
+    raisim::quatToRotMat(quat, rot);
+
+    bodyLinearVel_ = rot.e().transpose() * gv_.segment(0, 3);
+    bodyAngularVel_ = rot.e().transpose() * gv_.segment(3, 3);
+
     obDouble_ << gc_.head(7), gv_, lidarData;
   }
 
@@ -196,12 +223,17 @@ class ENVIRONMENT : public RaisimGymEnv {
   bool visualizable_ = false;
   raisim::ArticulatedSystem* husky_;
   raisim::HeightMap* heightMap_;
-  Eigen::VectorXd gc_init_, gv_init_, gc_, gv_, genForce_, torque4_;
+  Eigen::VectorXd gc_init_, gv_init_, gc_, gv_, genForce_, torque4_, lidarData;
+  Eigen::Vector3d bodyLinearVel_, bodyAngularVel_;
+  raisim::Mat<3,3> rot;
   Eigen::VectorXd actionMean_, actionStd_, obDouble_;
   std::vector<Eigen::Vector2d> poles_;
   int SCANSIZE = 20;
   int GRIDSIZE = 6;
   std::vector<raisim::Visuals *> scans;  // for visualization
+
+  Eigen::VectorXf stepData_;
+  std::vector<std::string> stepDataTag_;
 
   thread_local static std::mt19937 gen_;
   thread_local static std::normal_distribution<double> normDist_;

@@ -72,6 +72,45 @@ class VectorizedEnvironment {
       environments_[i]->observe(ob.row(i));
   }
 
+  std::vector<std::string> getStepDataTag() {
+    return environments_[0]->getStepDataTag();
+  }
+
+  int getStepData(int sample_size,
+                  Eigen::Ref<EigenVec> &mean,
+                  Eigen::Ref<EigenVec> &squareSum,
+                  Eigen::Ref<EigenVec> &min,
+                  Eigen::Ref<EigenVec> &max) {
+    size_t data_size = getStepDataTag().size();
+    if( data_size == 0 ) return sample_size;
+
+    RSFATAL_IF(mean.size() != data_size ||
+               squareSum.size() != data_size ||
+               min.size() != data_size ||
+               max.size() != data_size, "vector size mismatch")
+
+    mean *= sample_size;
+
+    for (int i = 0; i < num_envs_; i++) {
+      mean += environments_[i]->getStepData();
+      for (int j = 0; j < data_size; j++) {
+        min(j) = std::min(min(j), environments_[i]->getStepData()[j]);
+        max(j) = std::max(max(j), environments_[i]->getStepData()[j]);
+      }
+    }
+
+    sample_size += num_envs_;
+    mean /= sample_size;
+    for (int i = 0; i < num_envs_; i++) {
+      for (int j = 0; j < data_size; j++) {
+        double temp = environments_[i]->getStepData()[j];
+        squareSum[j] += temp * temp;
+      }
+    }
+
+    return sample_size;
+  }
+
   void step(Eigen::Ref<EigenRowMajorMat> &action,
             Eigen::Ref<EigenVec> &reward,
             Eigen::Ref<EigenBoolVec> &done,
