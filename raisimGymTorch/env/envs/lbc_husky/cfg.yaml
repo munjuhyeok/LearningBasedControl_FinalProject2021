@@ -11,8 +11,13 @@ environment:
   max_time: 8
   reward:
     goal:
-      coeff: -0.3
-
+      coeff: -0.1
+    speed:
+      coeff: 3.0
+    orientation:
+      coeff: 0.3
+    completed:
+      coeff: 5
 architecture:
   policy_net: [128, 128]
   value_net: [128, 128]

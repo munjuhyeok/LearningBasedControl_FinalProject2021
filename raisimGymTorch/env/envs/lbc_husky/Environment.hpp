@@ -157,7 +157,10 @@ class ENVIRONMENT : public RaisimGymEnv {
     }
 
     updateObservation();
-    rewards_.record("goal", gc_.head<2>().norm());
+    rewards_.record("goal",  gc_.head<2>().norm());
+    rewards_.record("speed", - gc_.head<3>().normalized().dot(gv_.head<3>()));
+    rewards_.record("orientation",  gc_.head<3>().normalized().dot(rot.e()(Eigen::all,0)));
+    rewards_.record("completed",  1 - notCompleted());
     return rewards_.sum();
   }
 
@@ -169,7 +172,7 @@ class ENVIRONMENT : public RaisimGymEnv {
     husky_->getFrameOrientation("imu_joint", lidarOri);
 
     Eigen::Vector3d direction;
-    const double scanWidth = 2. * M_PI;
+    const double scanWidth = 2.;
 
     for (int j = 0; j < SCANSIZE; j++) {
       const double yaw = j * M_PI / SCANSIZE * scanWidth - scanWidth * 0.5 * M_PI;
@@ -192,6 +195,7 @@ class ENVIRONMENT : public RaisimGymEnv {
     quat[0] = gc_[3]; quat[1] = gc_[4]; quat[2] = gc_[5]; quat[3] = gc_[6];
     raisim::quatToRotMat(quat, rot);
 
+    bodyToGoal_ = - rot.e().transpose() * gc_.segment(0, 3);
     bodyLinearVel_ = rot.e().transpose() * gv_.segment(0, 3);
     bodyAngularVel_ = rot.e().transpose() * gv_.segment(3, 3);
 
@@ -224,7 +228,7 @@ class ENVIRONMENT : public RaisimGymEnv {
   raisim::ArticulatedSystem* husky_;
   raisim::HeightMap* heightMap_;
   Eigen::VectorXd gc_init_, gv_init_, gc_, gv_, genForce_, torque4_, lidarData;
-  Eigen::Vector3d bodyLinearVel_, bodyAngularVel_;
+  Eigen::Vector3d bodyLinearVel_, bodyAngularVel_, bodyToGoal_;
   raisim::Mat<3,3> rot;
   Eigen::VectorXd actionMean_, actionStd_, obDouble_;
   std::vector<Eigen::Vector2d> poles_;
