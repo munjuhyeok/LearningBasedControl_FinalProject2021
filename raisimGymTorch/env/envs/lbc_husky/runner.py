@@ -152,8 +152,12 @@ for update in range(1000000):
     obs = env.observe()
     ppo.update(actor_obs=obs, value_obs=obs, log_this_iteration=update % 10 == 0, update=update)
     average_performance = reward_sum / total_iteration_steps
+    average_completion_time = completed_sum / env.num_envs * cfg['environment']['control_dt']
     average_dones = done_sum / total_iteration_steps
     avg_rewards.append(average_performance)
+
+    if update % 10 == 0:
+        ppo.writer.add_scalar('Loss/average_completion_time', average_completion_time, global_step=update)
 
     # curriculum update. Implement it in Environment.hpp
     env.curriculum_callback()
@@ -163,7 +167,7 @@ for update in range(1000000):
     print('----------------------------------------------------')
     print('{:>6}th iteration'.format(update))
     print('{:<40} {:>6}'.format("avg reward: ", '{:0.10f}'.format(average_performance)))
-    print('{:<40} {:>6}'.format("avg completion time: ", '{:0.6f}'.format(completed_sum / env.num_envs * cfg['environment']['control_dt'])))
+    print('{:<40} {:>6}'.format("avg completion time: ", '{:0.6f}'.format(average_completion_time)))
     print('{:<40} {:>6}'.format("time elapsed in this iteration: ", '{:6.4f}'.format(end - start)))
     print('{:<40} {:>6}'.format("fps: ", '{:6.0f}'.format(total_iteration_steps / (end - start))))
     print('{:<40} {:>6}'.format("real time factor: ", '{:6.0f}'.format(total_iteration_steps / (end - start)
