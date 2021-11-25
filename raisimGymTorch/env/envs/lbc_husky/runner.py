@@ -50,7 +50,7 @@ total_steps = 0
 avg_rewards = []
 
 actor = ppo_module.Actor(ppo_module.MLP(cfg['architecture']['policy_net'], nn.LeakyReLU, ob_dim, act_dim),
-                         ppo_module.MultivariateGaussianDiagonalCovariance(act_dim, 1.0),
+                         ppo_module.MultivariateGaussianDiagonalCovariance(act_dim, 5.0),
                          device)
 critic = ppo_module.Critic(ppo_module.MLP(cfg['architecture']['value_net'], nn.LeakyReLU, ob_dim, 1),
                            device)
@@ -70,8 +70,11 @@ ppo = PPO.PPO(actor=actor,
               device=device,
               log_dir=saver.data_dir,
               shuffle_batch=False,
-              entropy_coef=0.01,
+              entropy_coef=0.0,
+              learning_rate=1e-3,
               )
+
+scheduler = torch.optim.lr_scheduler.MultiStepLR(ppo.optimizer, milestones=[1000,2000], gamma=0.5)
 
 if mode == 'retrain':
     load_param(weight_path, env, actor, critic, ppo.optimizer, saver.data_dir)
@@ -170,7 +173,11 @@ for update in range(1000000):
     # curriculum update. Implement it in Environment.hpp
     env.curriculum_callback()
 
+    # actor.distribution.enforce_minimum_std((torch.ones(4)*(10-update/250)).to(device))
+
     end = time.time()
+
+    scheduler.step()
 
     print('----------------------------------------------------')
     print('{:>6}th iteration'.format(update))
