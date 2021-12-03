@@ -142,9 +142,9 @@ for update in range(1000000):
         action = ppo.observe(obs)
         reward, dones, not_completed = env.step(action)
         ppo.step(value_obs=obs, rews=reward, dones=dones)
-        done_sum = done_sum + sum(dones)
-        reward_sum = reward_sum + sum(reward)
-        completed_sum = completed_sum + sum(not_completed)
+        done_sum = done_sum + np.sum(dones)
+        reward_sum = reward_sum + np.sum(reward)
+        completed_sum = completed_sum + np.sum(not_completed)
 
     # data constraints - DO NOT CHANGE THIS BLOCK
     total_steps += env.num_envs * n_steps
