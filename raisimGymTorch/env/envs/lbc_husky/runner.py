@@ -12,7 +12,7 @@ import numpy as np
 import torch
 import datetime
 import argparse
-
+import subprocess
 
 # task specification
 task_name = "husky_navigation"
@@ -57,7 +57,7 @@ critic = ppo_module.Critic(ppo_module.MLP(cfg['architecture']['value_net'], nn.L
 
 saver = ConfigurationSaver(log_dir=home_path + "/raisimGymTorch/data/"+task_name,
                            save_items=[task_path + "/cfg.yaml", task_path + "/Environment.hpp", task_path + "/runner.py"])
-tensorboard_launcher(saver.data_dir+"/..")  # press refresh (F5) after the first ppo update
+# tensorboard_launcher(saver.data_dir+"/..")  # press refresh (F5) after the first ppo update
 
 ppo = PPO.PPO(actor=actor,
               critic=critic,
@@ -190,3 +190,7 @@ for update in range(1000000):
     print('std: ')
     print(np.exp(actor.distribution.std.cpu().detach().numpy()))
     print('----------------------------------------------------\n')
+out = subprocess.run(['python','competition.py','-w',saver.data_dir+"/full_{}.pt".format(update)],capture_output=True)
+with open("tuning_log.txt", "a") as file_object:
+    # Append 'hello' at the end of file
+    file_object.write(str(out)+"\n")
