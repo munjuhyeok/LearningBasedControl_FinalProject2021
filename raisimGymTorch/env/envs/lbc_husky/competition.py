@@ -57,7 +57,7 @@ else:
     completed_sum = 0
 
     for step in range(max_steps):
-        time.sleep(cfg['environment']['control_dt'])
+        # time.sleep(cfg['environment']['control_dt'])
         obs = env.observe(False)
         action = loaded_graph.architecture(torch.from_numpy(obs).cpu())
         reward, dones, not_completed = env.step(action.cpu().detach().numpy())

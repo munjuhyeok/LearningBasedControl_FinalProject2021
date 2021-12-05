@@ -115,7 +115,7 @@ for update in range(1000000):
             action = loaded_graph.architecture(torch.from_numpy(obs).cpu())
             reward, dones, completed = env.step(action.cpu().detach().numpy())
             frame_end = time.time()
-            wait_time = cfg['environment']['control_dt'] - (frame_end-frame_start)
+            wait_time = 0 # cfg['environment']['control_dt'] - (frame_end-frame_start)
             if wait_time > 0.:
                 time.sleep(wait_time)
             data_size = env.get_step_data(data_size, data_mean, data_square_sum, data_min, data_max)
