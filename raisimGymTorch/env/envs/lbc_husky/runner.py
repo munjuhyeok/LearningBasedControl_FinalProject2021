@@ -171,7 +171,8 @@ for update in range(1000000):
         ppo.writer.add_scalar('Loss/average_completion_time', average_completion_time, global_step=update)
 
     # curriculum update. Implement it in Environment.hpp
-    env.curriculum_callback()
+    if update % 50 ==0:
+        env.curriculum_callback()
 
     # actor.distribution.enforce_minimum_std((torch.ones(4)*(10-update/250)).to(device))
 

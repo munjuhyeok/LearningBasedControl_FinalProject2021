@@ -33,7 +33,6 @@ class ENVIRONMENT : public RaisimGymEnv {
     husky_->setControlMode(raisim::ControlMode::FORCE_AND_TORQUE);
 
     /// add heightmap
-    raisim::TerrainProperties terrainProperties;
     terrainProperties.frequency = 0.2;
     terrainProperties.zScale = 2.0;
     terrainProperties.xSize = 70.0;
@@ -44,8 +43,8 @@ class ENVIRONMENT : public RaisimGymEnv {
     terrainProperties.fractalLacunarity = 2.0;
     terrainProperties.fractalGain = 0.25;
 
-    std::unique_ptr<raisim::TerrainGenerator> genPtr = std::make_unique<raisim::TerrainGenerator>(terrainProperties);
-    std::vector<double> heightVec = genPtr->generatePerlinFractalTerrain();
+    genPtr = std::make_unique<raisim::TerrainGenerator>(terrainProperties);
+    heightVec = genPtr->generatePerlinFractalTerrain();
 
     /// add obstacles
     for (int i = 0; i < 70; i += GRIDSIZE) {
@@ -219,6 +218,24 @@ class ENVIRONMENT : public RaisimGymEnv {
   }
 
   void curriculumUpdate() {
+    genPtr = std::make_unique<raisim::TerrainGenerator>(terrainProperties);
+    heightVec = genPtr->generatePerlinFractalTerrain();
+
+    /// add obstacles
+    for (int i = 0; i < 70; i += GRIDSIZE) {
+      for (int j = (i % (GRIDSIZE * GRIDSIZE)) * 2 / GRIDSIZE; j < 70; j += GRIDSIZE) {
+        poles_.emplace_back(Eigen::Vector2d{1.01449*j - 35.0, 1.01449*i - 35.0});
+        heightVec[i*70 + j] += 1.;
+      }
+    }
+    world_->removeObject(heightMap_);
+    heightMap_ = world_->addHeightMap(terrainProperties.xSamples,
+                                      terrainProperties.ySamples,
+                                      terrainProperties.xSize,
+                                      terrainProperties.xSize,
+                                      0.,
+                                      0.,
+                                      heightVec);
   };
 
  private:
@@ -234,6 +251,10 @@ class ENVIRONMENT : public RaisimGymEnv {
   int SCANSIZE = 20;
   int GRIDSIZE = 6;
   std::vector<raisim::Visuals *> scans;  // for visualization
+
+  raisim::TerrainProperties terrainProperties;
+  std::unique_ptr<raisim::TerrainGenerator> genPtr;
+  std::vector<double> heightVec;
 
   Eigen::VectorXf stepData_;
   std::vector<std::string> stepDataTag_;
