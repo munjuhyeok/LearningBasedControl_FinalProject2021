@@ -64,7 +64,7 @@ ppo = PPO.PPO(actor=actor,
               num_envs=cfg['environment']['num_envs'],
               num_transitions_per_env=n_steps,
               num_learning_epochs=8,
-              gamma=0.996,
+              gamma=0.99,
               lam=0.95,
               num_mini_batches=4,
               device=device,
@@ -74,7 +74,7 @@ ppo = PPO.PPO(actor=actor,
               learning_rate=1e-3,
               )
 
-scheduler = torch.optim.lr_scheduler.MultiStepLR(ppo.optimizer, milestones=[1000,2000], gamma=0.5)
+scheduler = torch.optim.lr_scheduler.MultiStepLR(ppo.optimizer, milestones=[500,1000], gamma=0.5)
 
 if mode == 'retrain':
     load_param(weight_path, env, actor, critic, ppo.optimizer, saver.data_dir)
@@ -167,6 +167,15 @@ for update in range(1000000):
     average_dones = done_sum / total_iteration_steps
     avg_rewards.append(average_performance)
 
+    if average_completion_time < 5.5:
+        torch.save({
+            'actor_architecture_state_dict': actor.architecture.state_dict(),
+            'actor_distribution_state_dict': actor.distribution.state_dict(),
+            'critic_architecture_state_dict': critic.architecture.state_dict(),
+            'optimizer_state_dict': ppo.optimizer.state_dict(),
+        }, saver.data_dir+"/full_"+str(update)+'.pt')
+        env.save_scaling(saver.data_dir, str(update))
+
     if update % 10 == 0:
         ppo.writer.add_scalar('Loss/average_completion_time', average_completion_time, global_step=update)
 
@@ -191,7 +200,8 @@ for update in range(1000000):
     print('std: ')
     print(np.exp(actor.distribution.std.cpu().detach().numpy()))
     print('----------------------------------------------------\n')
+
 out = subprocess.run(['python','competition.py','-w',saver.data_dir+"/full_{}.pt".format(update)],capture_output=True)
+print(str(out))
 with open("tuning_log.txt", "a") as file_object:
-    # Append 'hello' at the end of file
     file_object.write(str(out)+"\n")

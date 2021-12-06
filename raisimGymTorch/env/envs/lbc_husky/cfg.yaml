@@ -3,7 +3,7 @@ record_video: yes
 
 environment:
   render: yes
-  num_envs: 100
+  num_envs: 200
   eval_every_n: 200
   num_threads: 30
   simulation_dt: 0.0025
@@ -11,13 +11,13 @@ environment:
   max_time: 8
   reward:
     goal:
-      coeff: -0.1
+      coeff: 0
     speed:
-      coeff: 2.0
+      coeff: 1
     orientation:
-      coeff: 0.3
+      coeff: 0
     completed:
-      coeff: 3
+      coeff: 1
 architecture:
   policy_net: [128, 128]
   value_net: [128, 128]
